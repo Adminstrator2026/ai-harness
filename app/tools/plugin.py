@@ -22,8 +22,7 @@ from pathlib import Path
 from .base import Tool, ToolResult, Command, COMMAND_REGISTRY
 from . import register, register_command, REGISTRY
 from ..config import CONFIG
-
-PLUGINS_DIR = Path(__file__).parent / "plugins"
+from ..paths import PLUGINS_DIR
 
 
 # ─── 目录初始化 ───────────────────────────────────────────────

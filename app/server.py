@@ -10,8 +10,7 @@ from .tools.shell import _run
 from .tools.files import _resolve
 from .tools.tabbit_cli import run_cli
 from .tools.tabbit import JS_TABS, JS_READ, build_open_js
-
-STATIC_DIR = Path(__file__).parent / "static"
+from .paths import STATIC_DIR
 app = Flask(__name__, static_folder=None)
 
 
@@ -235,7 +234,7 @@ def plugin_tabbit():
         else:
             return jsonify({"ok": False, "error": f"未知 action: {action}"}), 400
 
-        result = run_cli(js_code)
+        result = run_cli(js_code, task=(payload.get("group") or payload.get("task") or "ai-assistant"))
         return jsonify({"ok": True, "result": result})
 
     except RuntimeError as e:
@@ -244,6 +243,10 @@ def plugin_tabbit():
 # ─── 入口 ───────────────────────────────────────────────────────
 
 def main():
+    # 初始化可写目录（frozen 模式下把 plugins 拷到 %APPDATA%）
+    from .paths import ensure_dirs
+    ensure_dirs()
+
     # 用 lolcat + figlet 组装彩虹横幅（纯 Python，零依赖）
     from .art import build_banner
     banner = build_banner(
@@ -255,7 +258,12 @@ def main():
         version="3.0",
         tools=REGISTRY,
     )
-    print(banner)
+    # GBK 终端兜底（Windows cmd 默认 cp936 不支持 emoji）
+    try:
+        print(banner)
+    except UnicodeEncodeError:
+        safe = banner.encode(sys.stdout.encoding or "utf-8", errors="replace")
+        print(safe.decode(sys.stdout.encoding or "utf-8"))
 
     # 启动 REPL 指令行（daemon 线程，不影响 Flask 主线程）
     import threading

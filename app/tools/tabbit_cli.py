@@ -59,13 +59,14 @@ def _decode(b):
 
 # ─── CLI 执行核心 ────────────────────────────────────────────────
 
-def run_cli(js_code, timeout_ms=60000):
+def run_cli(js_code, timeout_ms=60000, task="ai-assistant"):
     """
     把一段 Node.js 代码交给 tabbit-cli 执行，返回其 JSON 结果。
 
     Args:
         js_code:    在浏览器上下文里执行的 Node.js 代码字符串
         timeout_ms: 总超时毫秒数（CLI 内部 + subprocess 外层各有兜底）
+        task:       Tabbit 分组名（同一分组共享浏览器上下文），默认 'ai-assistant'
 
     Returns:
         dict: CLI 返回的 JSON 结果（status / result / error 等字段）
@@ -86,13 +87,16 @@ def run_cli(js_code, timeout_ms=60000):
     with os.fdopen(fd, "w", encoding="utf-8") as f:
         f.write(js_code + "\n")
 
+    # 分组名 sanitize（只允许字母数字下划线短横线）
+    safe_task = "".join(c for c in task if c.isalnum() or c in "_-")[:64] or "ai-assistant"
+
     try:
         # subprocess 外层超时比 CLI 内部超时多 5 秒作为缓冲
         subprocess_timeout_s = max(10, int(timeout_ms / 1000) + 5)
         proc = subprocess.run(
             [
                 cli, "nodejs",
-                "--task", "ai-assistant",
+                "--task", safe_task,
                 "--request-id", request_id,
                 "--timeout-ms", str(timeout_ms),
             ],
@@ -137,4 +141,5 @@ def run_cli(js_code, timeout_ms=60000):
             f"Stderr: {stderr[:500]}"
         )
 
-    return data.get("result", {})
+    # CLI 把用户 JS 返回值包在 result.value 里，取出来让上层直接拿到干净对象
+    return data.get("result", {}).get("value", data.get("result", {}))

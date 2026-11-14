@@ -43,10 +43,16 @@ from .tools.plugin import (
 )
 
 
-# ─── 输出工具（绕过 redirect_stdout）─────────────────────────────
+# ─── 输出工具（绕过 redirect_stdout + emoji 兼容 GBK 终端）───────
 
 def _out(s="", end="\n"):
-    print(s, file=sys.__stdout__, end=end, flush=True)
+    """print 到 sys.__stdout__。GBK 终端 emoji 会炸，用 replace 兜底。"""
+    try:
+        print(s, file=sys.__stdout__, end=end, flush=True)
+    except UnicodeEncodeError:
+        enc = getattr(sys.__stdout__, "encoding", "utf-8")
+        safe = s.encode(enc, errors="replace").decode(enc)
+        print(safe, file=sys.__stdout__, end=end, flush=True)
 
 
 # ─── Tab 补全（Minecraft 风格循环切换）────────────────────────────

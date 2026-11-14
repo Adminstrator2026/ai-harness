@@ -9,6 +9,7 @@ __pycache__/
 .eggs/
 build/
 dist/
+*.spec
 *.whl
 .pytest_cache/
 .coverage

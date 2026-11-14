@@ -25,8 +25,17 @@ return { tabs: activeTabs };
 """
 
 
+def _extract_task(args):
+    """从 args 里提取自定义分组名（支持 group / task / session 三种 key）"""
+    for k in ("group", "task", "session"):
+        v = args.get(k)
+        if v and isinstance(v, str) and v.strip():
+            return v.strip()[:64]
+    return "ai-assistant"
+
+
 def _tabs(args, ctx):
-    result = run_cli(JS_TABS)
+    result = run_cli(JS_TABS, task=_extract_task(args))
     tabs = result.get("tabs", [])
     if not tabs:
         return ToolResult(text="当前没有打开的网页标签。")
@@ -68,7 +77,7 @@ return { title, text };
 
 
 def _read(args, ctx):
-    result = run_cli(JS_READ)
+    result = run_cli(JS_READ, task=_extract_task(args))
     if result.get("error"):
         raise RuntimeError(result["error"])
     text = (result.get("text", "") or "").strip()
@@ -108,7 +117,8 @@ def _open(args, ctx):
     if not url or not str(url).startswith(("http", "https")):
         raise ValueError(f"URL 格式不对：{url}")
 
-    result = run_cli(build_open_js(url))
+    task = _extract_task(args)
+    result = run_cli(build_open_js(url), task=task)
     if result.get("error"):
         raise RuntimeError(result["error"])
     text = (result.get("text", "") or "").strip()
@@ -122,12 +132,14 @@ def _open(args, ctx):
 
 def register_all():
     register(Tool(name="browser_tabs", title="列出浏览器标签页", perm="Visitor",
-        desc="列出当前浏览器打开的所有标签页。", usage="{}", handler=_tabs))
+        desc="列出 Tabbit 浏览器当前分组内打开的所有标签页。可用 group 参数指定分组名，默认 ai-assistant。",
+        usage='{"group":"可选，分组名"}', handler=_tabs))
 
     register(Tool(name="browser_read", title="读取网页内容", perm="Visitor",
-        desc="读取当前标签页的网页文本。", usage="{}", handler=_read))
+        desc="读取 Tabbit 浏览器当前标签页的网页正文。可用 group 参数指定分组名。",
+        usage='{"group":"可选，分组名"}', handler=_read))
 
     register(Tool(name="browser_open", title="打开网页并读取", perm="Visitor",
-        desc="在浏览器中打开指定网址并读取正文。",
-        usage='{"url":"https://example.com"}',
+        desc="在 Tabbit 浏览器中打开指定网址并读取正文。可用 group 参数指定分组名，默认 ai-assistant。",
+        usage='{"url":"https://example.com","group":"可选"}',
         required={"url": "string"}, handler=_open))
