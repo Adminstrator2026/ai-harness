@@ -1,0 +1,28 @@
+# ═══════════════════════════════════════════════
+# AI Harness — 核心依赖（跨平台，Windows + Linux + macOS 通用）
+# Python >= 3.10
+# ═══════════════════════════════════════════════
+Flask==3.1.0
+requests==2.32.5
+
+# ═══════════════════════════════════════════════
+# Windows 桌面 UI 自动化 — 仅 Windows 安装
+# 在 Linux/macOS 上这些会自动跳过（platform_system 标记）
+#
+# 安装方式（Windows 上自动，Linux/macOS 上跳过）：
+#   pip install -r requirements.txt
+# 如果要强制装 Windows 依赖：
+#   pip install -r requirements.txt -c windows-requirements.txt
+# ═══════════════════════════════════════════════
+pywin32==312 ; platform_system == "Windows"
+comtypes==1.5.0 ; platform_system == "Windows"
+
+# Tab 补全 — Windows 没 GNU readline，用 pyreadline3 纯实现
+# Linux/macOS 自带 readline，不需要装
+pyreadline3>=3.4 ; platform_system == "Windows"
+
+# ═══════════════════════════════════════════════
+# 可选增强：psutil 让 sys_info 更准确
+# 没有也能跑，用纯 Python 兜底
+# ═══════════════════════════════════════════════
+psutil>=5.9.0

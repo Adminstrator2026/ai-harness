@@ -1,0 +1,48 @@
+# ── Python ──
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# ── 虚拟环境 ──
+.venv/
+venv/
+env/
+.env/
+
+# ── 版本控制 ──
+.git/
+.gitignore
+.gitattributes
+
+# ── 工作目录（Agent 读写的东西，不要带进镜像） ──
+workspace/
+*.log
+
+# ── IDE ──
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# ── 文档 / LICENSE（生产镜像里不需要） ──
+README.md
+LICENSE
+CHANGELOG.md
+*.md
+
+# ── 测试 / 开发辅助 ──
+_test_*.py
+test_*.py
+.pytest_cache/
+.coverage
+coverage.xml
+docker-compose.dev.yml
+
+# ── 临时文件 ──
+*.tmp
+*.bak
+*.tar.gz

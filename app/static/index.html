@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Harness</title>
+<link rel="stylesheet" href="/static/style.css">
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="sb-head">
+      <span class="logo">ai harness</span>
+      <button id="btnNew" class="icon-btn" title="新对话">＋</button>
+    </div>
+    <div class="sb-list" id="historyList"></div>
+    <div class="sb-foot">
+      <button id="btnPlugins" class="ghost-btn" style="width:100%;margin-bottom:8px;">🧩 插件管理</button>
+      <button id="btnSettings" class="ghost-btn" style="width:100%">⚙ 设置</button>
+    </div>
+  </aside>
+  <main class="main">
+    <div class="chat" id="chat"></div>
+    <div class="composer">
+      <div class="composer-box">
+        <div class="img-preview" id="imgPreview"></div>
+        <textarea id="input" placeholder="输入消息，Enter 发送，Shift+Enter 换行"></textarea>
+        <div class="composer-tools">
+          <button id="btnTheme" class="chip" title="切换深色/浅色">🌙</button>
+          <button id="btnImg" class="chip" title="上传图片">🖼 图片/视频</button>
+          <input type="file" id="imgInput" accept="image/*,video/*" multiple hidden>
+          <span class="grow"></span>
+          <span id="modelLabel" class="chip chip-muted" title="点击选择模型">未选模型 · Off</span>
+          <button id="btnSend" class="send">发送</button>
+          <button id="btnStop" class="stop" style="display:none">停止</button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- 模型选择浮层 -->
+<div class="model-popover" id="modelPopover" style="display:none;">
+  <div class="model-pop-header">
+    <span>选择模型</span>
+    <button id="btnRefreshModels" class="icon-btn" title="刷新模型列表">↻</button>
+  </div>
+  <div class="model-pop-list" id="modelList">
+    <div style="padding:10px;text-align:center;color:var(--muted);font-size:12px;">加载中…</div>
+  </div>
+</div>
+
+<!-- 设置弹窗 -->
+<div class="modal" id="settingsModal">
+  <div class="modal-box">
+    <h3>设置</h3>
+    <div class="form">
+      <label>API 地址 <input id="apiUrl" placeholder="https://api.openai.com/v1"></label>
+      <label>API Key <input id="apiKey" type="password" placeholder="sk-..."></label>
+      <label>模型 <input id="model" placeholder="deepseek-chat / gpt-4o"></label>
+      <label>系统提示词 <textarea id="system" rows="3"></textarea></label>
+      <label class="row">
+        <input type="checkbox" id="toolsEnabled"> 允许 AI 调用插件/工具
+      </label>
+      <label>思考强度
+        <select id="thinkLevel">
+          <option value="0">关闭</option>
+          <option value="1">中（High）</option>
+          <option value="2">高（Max）</option>
+        </select>
+      </label>
+      <label>权限等级
+        <select id="permission">
+          <option value="Visitor">Visitor · 访客（仅可查看）</option>
+          <option value="User">User · 用户（工作区内修改）</option>
+          <option value="Root">Root · 超级用户（完全权限）</option>
+        </select>
+      </label>
+      <label class="row" style="align-items:flex-start;gap:12px;">
+        <input type="checkbox" id="sandboxMode" style="margin-top:2px;">
+        <div style="flex:1;">
+          <div style="font-weight:500;">🛡️ 沙箱模式（推荐）</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:4px;">
+            <b>开启</b>：安全模式，禁止 Shell 执行、进程管理、文件删除、起服务器。<br>
+            <b>关闭</b>：完整权限，可以执行任意命令、起开发服务器、删除文件等。
+          </div>
+        </div>
+      </label>
+      <div style="font-size:11px;color:var(--muted);padding:8px 0;border-top:1px solid var(--border);margin-top:4px;">
+        💡 支持多模态：可发送图片 / 视频（自动抽帧），AI 可以看图分析。
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button id="btnCloseSettings" class="ghost-btn">取消</button>
+      <button id="btnSaveSettings" class="primary-btn">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 插件管理弹窗 -->
+<div class="modal" id="pluginsModal">
+  <div class="modal-box">
+    <h3>插件管理</h3>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">勾选允许当前 AI 使用的工具（未勾选的工具将对模型隐藏且无法执行）。</p>
+    <div class="form" id="pluginListContainer" style="max-height: 400px; overflow-y: auto;">
+      <!-- 动态渲染 -->
+    </div>
+    <div class="modal-actions">
+      <button id="btnClosePlugins" class="ghost-btn">关闭</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script type="module" src="/static/js/app.js"></script>
+</body>
+</html>
